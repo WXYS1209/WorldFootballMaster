@@ -5,10 +5,10 @@ import pandas as pd
 from tqdm import tqdm
 import os
 from typing import Dict, List, Optional
-from .competition_scrapers import CupScraper
+from .base_scraper import BaseScraper
 from ..config import get_config
 
-class UEFAScraper(CupScraper):
+class CupScraper(BaseScraper):
     """Scraper for UEFA competitions (UCL, UEL, UECL, etc.)"""      
     def __init__(self, output_dir: str = None, config_dir: str = None):
         """Initialize UEFAScraper

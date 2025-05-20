@@ -2,9 +2,9 @@ import pandas as pd
 from datetime import datetime, timedelta
 import os
 from typing import Optional, Tuple
-from .competition_cleaners import LeagueCleaner
+from .base_cleaner import BaseCleaner
 
-class FiveLeagueCleaner(LeagueCleaner):
+class LeagueCleaner(BaseCleaner):
     """Cleaner for five major European football leagues schedule data"""
     
     def __init__(self, config_dir: str = None):

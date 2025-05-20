@@ -3,9 +3,9 @@ import pandas as pd
 import os
 from datetime import datetime, timedelta
 from typing import Optional, Dict
-from .competition_cleaners import CupCleaner
+from .base_cleaner import BaseCleaner
 
-class UEFACleaner(CupCleaner):
+class CupCleaner(BaseCleaner):
     """Cleaner for UEFA competition schedules"""
     
     def __init__(self, input_dir: str = None, output_dir: str = None, team_mapping_path: str = None):

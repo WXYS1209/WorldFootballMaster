@@ -1,12 +1,9 @@
 from .base_scraper import BaseScraper
-from .competition_scrapers import LeagueScraper, CupScraper
-from .five_league_scraper import FiveLeagueScraper
-from .uefa_scraper import UEFAScraper
+from .league_scraper import LeagueScraper
+from .cup_scraper import CupScraper
 
 __all__ = [
     'BaseScraper',
     'LeagueScraper',
-    'CupScraper',
-    'FiveLeagueScraper',
-    'UEFAScraper'
+    'CupScraper'
 ]

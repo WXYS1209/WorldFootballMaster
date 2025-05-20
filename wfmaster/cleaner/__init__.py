@@ -1,12 +1,9 @@
 from .base_cleaner import BaseCleaner
-from .competition_cleaners import LeagueCleaner, CupCleaner
-from .five_league_cleaner import FiveLeagueCleaner
-from .uefa_cleaner import UEFACleaner
+from .league_cleaner import LeagueCleaner
+from .cup_cleaner import CupCleaner
 
 __all__ = [
     'BaseCleaner',
     'LeagueCleaner',
-    'CupCleaner',
-    'FiveLeagueCleaner',
-    'UEFACleaner'
+    'CupCleaner'
 ]

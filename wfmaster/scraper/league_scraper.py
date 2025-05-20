@@ -4,9 +4,9 @@ import pandas as pd
 from tqdm import tqdm
 import os
 from typing import Dict, List, Optional
-from .competition_scrapers import LeagueScraper
+from .base_scraper import BaseScraper
 
-class FiveLeagueScraper(LeagueScraper):
+class LeagueScraper(BaseScraper):
     """Scraper for five major European football leagues"""
     def __init__(self, config_dir: str = None):
         """Initialize FiveLeagueScraper
