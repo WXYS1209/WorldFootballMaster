@@ -1,0 +1,15 @@
+README.md
+setup.py
+wfmaster/__init__.py
+wfmaster.egg-info/PKG-INFO
+wfmaster.egg-info/SOURCES.txt
+wfmaster.egg-info/dependency_links.txt
+wfmaster.egg-info/entry_points.txt
+wfmaster.egg-info/requires.txt
+wfmaster.egg-info/top_level.txt
+wfmaster/cleaner/__init__.py
+wfmaster/cleaner/base_cleaner.py
+wfmaster/cleaner/five_league_cleaner.py
+wfmaster/scraper/__init__.py
+wfmaster/scraper/base_scraper.py
+wfmaster/scraper/five_league_scraper.py
