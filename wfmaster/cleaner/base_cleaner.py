@@ -39,7 +39,7 @@ class BaseCleaner(ABC):
         
     def _setup_logging(self):
         """Configure logging for the cleaner"""
-        log_file = os.path.join(self.config.output_dir, f"{self.__class__.__name__.lower()}.log")
+        log_file = os.path.join(self.config.output_dir, "worldfootball_master.log")
         logging.basicConfig(
             filename=log_file,
             level=logging.INFO,
@@ -47,10 +47,23 @@ class BaseCleaner(ABC):
         )
         self.logger = logging.getLogger(self.__class__.__name__)
     
-    @abstractmethod
-    def clean(self, *args, **kwargs):
-        """Main cleaning method to be implemented by subclasses"""
-        pass
+    def clean(self, input_data: pd.DataFrame) -> pd.DataFrame:
+        """Clean the schedule data
+        
+        Args:
+            input_data: Original data
+            
+        Returns:
+            pd.DataFrame: Cleaned schedule data
+        """
+        self.logger.info("="*10 + "Start cleaning schedules" + "="*10)
+        
+        try:
+            self.clean_data = self._process_schedule(input_data)
+            
+        except Exception as e:
+            self.logger.error(f"An error occurred during cleaning: {e}", exc_info=True)
+            raise
     
     def save(self, filename: Optional[str] = None) -> None:
         """Save cleaned data to Excel file
@@ -65,7 +78,118 @@ class BaseCleaner(ABC):
         output_file = filename or os.path.join(self.config.output_dir, f'sch_{self.__class__.__name__.lower()}_clean.xlsx')
         self.clean_data.to_excel(output_file, index=False)
         self.logger.info(f"Cleaned schedule saved to {output_file}")
+        self.logger.info("="*10 + "Done cleaning schedules" + "="*10)
     
+    def update_final_schedule(self, final_schedule_path: Optional[str] = None, initial: bool = False) -> None:
+        """Update the final schedule file
+        
+        Args:
+            final_schedule_path: Path to final schedule Excel file
+            initial: Whether this is the initial run. If True, will create Sequence sheet
+        """
+        if not self._validate_data(self.clean_data):
+            self.logger.error("No clean data available")
+            return
+            
+        final_path = final_schedule_path or os.path.join(self.config.output_dir, 'Schedule.xlsx')
+        
+        if not os.path.exists(final_path):
+            initial = True
+            # Create an empty Excel file with the required sheets and columns
+            with pd.ExcelWriter(final_path) as writer:
+                pd.DataFrame(columns=['season', 'competition', 'hometeam_id', 'hometeam', 'awayteam_id', 'awayteam', 'match_round', 'Match_in_Season', 'match_id']).to_excel(writer, sheet_name="Sequence", index=False)
+                pd.DataFrame(columns=self.FINAL_COLUMNS).to_excel(writer, sheet_name="Schedule", index=False)
+
+        try:
+            if initial:
+                # For initial run, use clean_data as both sequence and schedule
+                self.logger.info("Initial run - creating sequence from clean data")
+                df_seq = self.clean_data[['season', 'competition', 'hometeam_id', 'hometeam', 'awayteam_id', 'awayteam', 'match_round']].copy()
+                # Create match_id by grouping and using cumcount
+                # Add sequential match number within each season/competition group
+                df_seq['Match_in_Season'] = df_seq.groupby(['season', 'competition']).cumcount() + 1
+                df_seq['match_id'] = df_seq[['competition','season', 'Match_in_Season']].astype(str).agg('_'.join, axis=1)
+                df_final_org = pd.DataFrame(columns=self.FINAL_COLUMNS)
+
+                # Save sequence first
+                with pd.ExcelWriter(final_path) as writer:
+                    df_seq.to_excel(writer, sheet_name="Sequence", index=False)
+                # return
+            else:
+                # Normal operation - load existing files
+                df_seq = pd.read_excel(final_path, sheet_name="Sequence")
+                df_final_org = pd.read_excel(final_path, sheet_name="Schedule")
+            
+            # Merge with sequence
+            df_final = df_seq.merge(self.clean_data, how="left", on=['season', 'competition', 'hometeam_id', 'hometeam', 'awayteam_id', 'awayteam', 'match_round'])
+
+            # Check for modifications
+            df_check = self._check_modifications(df_final, df_final_org)
+            
+            # Mutate modified time
+            if not initial:
+                df_final['modified_time'] = df_final_org['modified_time']
+                df_final.loc[df_check['modified'] == True, 'modified_time'] = pd.Timestamp(datetime.today().date())
+                df_final['note'] = pd.NA
+                df_final.loc[df_check['modified'] == True, 'note'] = "Modified"
+            
+            else:
+                df_final['modified_time'] = pd.Timestamp(datetime.today().date())
+                df_final['note'] = "Initial scrape"
+
+            # Generate statistics
+            df_update_info = df_check.loc[df_check['modified'] == True, ['season', 'competition', 'match_round']].value_counts().sort_index()
+            df_stat = df_final.loc[df_final['status'].notna(), ['season', 'competition', 'match_round']].value_counts().sort_index()
+            
+            self.logger.info(f"Number of schedule updated: {df_update_info.sum()}")
+            
+            # Save updates
+            self._save_final_schedule(final_path, df_final[self.FINAL_COLUMNS], df_update_info, df_stat)
+            
+        except Exception as e:
+            self.logger.error(f"Error updating final schedule: {e}", exc_info=True)
+            raise
+    
+    def _check_modifications(self, df_final: pd.DataFrame, df_final_org: pd.DataFrame) -> pd.DataFrame:
+        """Check for modifications between new and original schedule
+        
+        Args:
+            df_final: New final schedule
+            df_final_org: Original final schedule
+            
+        Returns:
+            pd.DataFrame: DataFrame with modification flags
+        """
+        df_check = df_final.merge(
+            df_final_org,
+            how="left",
+            on=['season', 'competition', 'match_round', 'hometeam', 'awayteam', 'match_id'],
+            suffixes=["_new", "_old"]
+        )
+        
+        df_check['modified'] = pd.NA
+        mask = ~(df_check['status_new'].isna() & df_check['status_old'].isna())
+        df_check.loc[mask, 'modified'] = (df_check['status_new'] != df_check['status_old'])[mask]
+        
+        return df_check
+    
+    def _save_final_schedule(self, path: str, df_final: pd.DataFrame, df_update_info: pd.DataFrame, df_stat: pd.DataFrame) -> None:
+        """Save final schedule to Excel
+        
+        Args:
+            path: Path to save Excel file
+            df_final: Final schedule DataFrame
+            df_update_info: Update information DataFrame
+            df_stat: Statistics DataFrame
+        """
+        with pd.ExcelWriter(path, mode='a', if_sheet_exists='replace', engine='openpyxl') as writer:
+            df_final.to_excel(writer, sheet_name="Schedule", index=False)
+            df_update_info.to_excel(writer, sheet_name="Update_Info")
+            df_stat.to_excel(writer, sheet_name="Summary")
+            
+        self.logger.info(f"Final schedule updated and saved to {path}")
+    
+
     def _validate_data(self, df: pd.DataFrame) -> bool:
         """Validate cleaned data
         
@@ -82,18 +206,14 @@ class BaseCleaner(ABC):
         try:
             self.team_mapping = pd.read_excel(
                 self.config.team_mapping_path,
-                sheet_name="n0"
-            ).drop_duplicates(['Org', 'Team_Code']).reset_index(drop=True)
-            
-            self.code_mapping = pd.read_excel(
-                self.config.team_mapping_path,
-                sheet_name="m0"
+                sheet_name="alias"
             )
+            
         except Exception as e:
             self.logger.error(f"Error loading team mappings: {e}")
             raise
     
-    def _add_team_codes(self, schedule: pd.DataFrame) -> pd.DataFrame:
+    def _clean_team(self, schedule: pd.DataFrame) -> pd.DataFrame:
         """Add team codes to schedule data
         
         Args:
@@ -103,48 +223,28 @@ class BaseCleaner(ABC):
         Returns:
             pd.DataFrame: Schedule with team codes
         """
-        schedule_with_codes = schedule.merge(
-            self.team_mapping[['Org', 'Team_Code']], 
+        # Normalize case for merging
+        schedule['Home_Team'] = schedule['Home_Team'].str.lower()
+        schedule['Away_Team'] = schedule['Away_Team'].str.lower()
+        self.team_mapping['alias'] = self.team_mapping['alias'].str.lower()
+
+        schedule_clean = schedule.merge(
+            self.team_mapping, 
             how='left', 
             left_on='Home_Team', 
-            right_on='Org'
-        ).rename(columns={'Team_Code': 'hometeam_id'}).merge(
-            self.team_mapping[['Org', 'Team_Code']], 
+            right_on='alias'
+        ).rename(columns={'team_id': 'hometeam_id', 'csm_name': 'hometeam'}).merge(
+            self.team_mapping, 
             how='left', 
             left_on='Away_Team', 
-            right_on='Org'
-        ).rename(columns={'Team_Code': 'awayteam_id'})
+            right_on='alias'
+        ).rename(columns={'team_id': 'awayteam_id', 'csm_name': 'awayteam'})
         
-        if schedule_with_codes['hometeam_id'].isna().any() or schedule_with_codes['awayteam_id'].isna().any():
+        if schedule_clean['hometeam_id'].isna().any() or schedule_clean['awayteam_id'].isna().any():
             self.logger.warning("New team name detected in the schedule.")
-            
-        return schedule_with_codes
-    
-    def _merge_team_names(self, schedule: pd.DataFrame) -> pd.DataFrame:
-        """Merge English team names
         
-        Args:
-            schedule: Schedule DataFrame
-            code_mapping: Code mapping DataFrame
-            
-        Returns:
-            pd.DataFrame: Schedule with English team names
-        """
-        sch = schedule.merge(
-            self.code_mapping, 
-            how='left', 
-            left_on='hometeam_id', 
-            right_on='Team_Code'
-        ).rename(columns={'Eng_Name': 'hometeam'}).merge(
-            self.code_mapping, 
-            how='left', 
-            left_on='awayteam_id', 
-            right_on='Team_Code'
-        ).rename(columns={'Eng_Name': 'awayteam'})
-        
-        sch['match'] = sch['hometeam'] + " vs. " + sch['awayteam']
-        
-        return sch
+        schedule_clean['match'] = schedule_clean['hometeam'] + " vs. " + schedule_clean['awayteam']
+        return schedule_clean
     
     def _format_time_to_26(self, time_str: str) -> str:
         """Format time string to 26-hour format
@@ -338,6 +438,35 @@ class BaseCleaner(ABC):
         )
 
         return df
+    
+    def _process_schedule(self, schedule: pd.DataFrame) -> pd.DataFrame:
+        """Process and clean schedule data
+        
+        Args:
+            schedule: Raw schedule DataFrame
+            
+        Returns:
+            pd.DataFrame: Processed schedule data
+        """
+        
+        # Add team codes
+        sch = self._clean_team(schedule)
+        
+        # sch = self._merge_team_names(schedule_with_codes)
+        sch = self._process_scores(sch)
+        sch = self._process_status(sch)
+        sch = self._process_datetime(sch)
+        sch = self._process_round(sch)
+
+        sch['season'] = sch['Season'].apply(self._format_season)
+        sch['competition'] = sch['Competition']
+
+        # Keep only specified columns and add missing ones with NA
+        missing_cols = set(self.CLEANED_COLUMNS) - set(sch.columns)
+        for col in missing_cols:
+            sch[col] = pd.NA
+        sch = sch[self.CLEANED_COLUMNS]
+        return sch
     
     @abstractmethod
     def _process_round(self, *args, **kwargs):

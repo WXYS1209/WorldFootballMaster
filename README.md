@@ -1,68 +1,50 @@
-# WorldFootballMaster
+---
+title: "WorldFootball爬虫文档"
+output:
+  word_document: default
+  html_document: default
+---
 
-A Python package for scraping and processing football schedule data from various leagues.
+# 项目结构
 
-## Installation
+- `main.py`：主入口，执行联赛和杯赛的抓取与清洗
+- `wfmaster/`
+  - `scraper/`：联赛和杯赛的抓取模块
+  - `cleaner/`：联赛和杯赛的数据清洗模块
+  - `config.py`：配置工具
+- `scripts/`：手动抓取/清洗的辅助脚本
+- `config/`：比赛和联赛的映射 CSV 文件
+- `output/`：生成的 Excel 文件和日志
 
-```bash
-pip install -e .
-```
+# 使用方法
 
-## Usage
+1. 安装依赖（如有）：
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-### Command Line Interface
+2. 更新配置文件
+    修改 `config/` 中的 `league_mapping.csv` (联赛) 与 `competition_mapping.csv` (杯赛)
 
-The package provides two main commands:
+3. 运行主程序：
+   ```bash
+   python main.py
+   ```
 
-1. Scrape schedules:
-```bash
-wf-scrape --season 2024-2025 --output-dir /path/to/output
-```
+4. 在 `output/` 文件夹中查看结果：
+   - `league_schedule.xlsx`：联赛
+   - `cup_schedule.xlsx`：杯赛
+   
+# 赛程文件
+  文件中包含以下四个表格：
+  1. Sequence：比赛顺序
+  
+  2. Schedule：赛程
+  
+  3. Update_Info：最近一次运行更新信息
+  
+  4. Summary：赛程汇总信息
 
-2. Clean schedules:
-```bash
-wf-clean --input-dir /path/to/input --output-dir /path/to/output --update-final
-```
-
-### Python API
-
-```python
-from wfmaster.scraper import FiveLeagueScraper
-from wfmaster.cleaner import FiveLeagueCleaner
-
-# Scrape data
-scraper = FiveLeagueScraper(output_dir='path/to/output')
-data = scraper.scrape(season='2024-2025')
-scraper.save()
-
-# Clean data
-cleaner = FiveLeagueCleaner(
-    input_dir='path/to/input',
-    output_dir='path/to/output'
-)
-cleaned_data = cleaner.clean()
-cleaner.save()
-cleaner.update_final_schedule()
-```
-
-## Project Structure
-
-```
-wfmaster/
-├── scraper/
-│   ├── __init__.py
-│   ├── base_scraper.py
-│   └── five_league_scraper.py
-├── cleaner/
-│   ├── __init__.py
-│   ├── base_cleaner.py
-│   └── five_league_cleaner.py
-└── inspector/  # Future expansion for data analysis
-```
-
-## Features
-
-- Scrape football schedules from major leagues
-- Clean and process schedule data
-- Update final schedule with modifications
-- Extensible base classes for future additions
+# 扩展说明
+- 在 `wfmaster/scraper/` 或 `wfmaster/cleaner/` 中添加新的抓取或清洗模块
+- 在 `main.py` 中增加新的处理流程

@@ -1,3 +1,0 @@
-[console_scripts]
-wf-clean = scripts.clean_schedules:main
-wf-scrape = scripts.scrape_schedules:main

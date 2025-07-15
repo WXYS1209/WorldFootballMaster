@@ -1,0 +1,41 @@
+2025-07-15 17:13:36,232 - INFO: ==========Start scraping schedules==========
+2025-07-15 17:13:36,236 - INFO: Scraping League: EPL
+2025-07-15 17:14:25,392 - INFO: Scraping League: La Liga
+2025-07-15 17:15:15,262 - INFO: Scraping League: Bundesliga
+2025-07-15 17:15:55,484 - INFO: Scraping League: Ligue 1
+2025-07-15 17:16:38,490 - INFO: Scraping League: Serie A
+2025-07-15 17:17:26,487 - INFO: ==========Done scraping schedules==========
+2025-07-15 17:17:26,857 - INFO: Schedule saved to d:\wangxiaoyang\Regular_Work\Produce_Report\Schedule\WorldFootballMaster\output\sch_leaguescraper.xlsx
+2025-07-15 17:17:26,857 - INFO: ==========Start cleaning schedules==========
+2025-07-15 17:17:27,662 - INFO: Cleaned schedule saved to d:\wangxiaoyang\Regular_Work\Produce_Report\Schedule\WorldFootballMaster\output\sch_leaguecleaner_clean.xlsx
+2025-07-15 17:17:27,662 - INFO: ==========Done cleaning schedules==========
+2025-07-15 17:17:27,702 - INFO: Initial run - creating sequence from clean data
+2025-07-15 17:17:27,879 - INFO: Number of schedule updated: 1752
+2025-07-15 17:17:29,147 - INFO: Final schedule updated and saved to D:\wangxiaoyang\Regular_Work\Produce_Report\Schedule\WorldFootballMaster\output\league_schedule.xlsx
+2025-07-15 17:17:29,194 - INFO: ==========Start scraping UEFA schedules==========
+2025-07-15 17:17:29,194 - INFO: Scraping Competition: UNL-A
+2025-07-15 17:17:30,556 - INFO: Scraping Competition: UNL-B
+2025-07-15 17:17:31,554 - INFO: Scraping Competition: UNL-C
+2025-07-15 17:17:32,708 - INFO: Scraping Competition: UNL-D
+2025-07-15 17:17:34,031 - INFO: Scraping Competition: UCL
+2025-07-15 17:17:35,654 - INFO: Scraping Competition: UCL Qualifiers
+2025-07-15 17:17:36,628 - INFO: Scraping Competition: UEL
+2025-07-15 17:17:37,686 - INFO: Scraping Competition: UEL Qualifiers
+2025-07-15 17:17:38,642 - INFO: Scraping Competition: UECL
+2025-07-15 17:17:39,801 - INFO: Scraping Competition: UECL Qualifiers
+2025-07-15 17:17:41,357 - INFO: Scraping Competition: USC
+2025-07-15 17:17:42,320 - INFO: Scraping Competition: WC QUAL
+2025-07-15 17:17:43,445 - INFO: Scraping Competition: DFB
+2025-07-15 17:17:44,422 - INFO: Scraping Competition: DFB
+2025-07-15 17:17:45,380 - INFO: Scraping Competition: DFB
+2025-07-15 17:17:46,338 - INFO: Scraping Competition: DFB
+2025-07-15 17:17:47,544 - INFO: Schedule saved to d:\wangxiaoyang\Regular_Work\Produce_Report\Schedule\WorldFootballMaster\output\sch_cupscraper.xlsx
+2025-07-15 17:17:47,544 - INFO: ==========Start cleaning schedules==========
+2025-07-15 17:17:47,550 - WARNING: New team name detected in the schedule.
+2025-07-15 17:17:48,435 - INFO: Cleaned schedule saved to d:\wangxiaoyang\Regular_Work\Produce_Report\Schedule\WorldFootballMaster\output\sch_cupcleaner_clean.xlsx
+2025-07-15 17:17:48,435 - INFO: ==========Done cleaning schedules==========
+2025-07-15 17:17:48,460 - INFO: Initial run - creating sequence from clean data
+2025-07-15 17:17:48,602 - INFO: Number of schedule updated: 1298
+2025-07-15 17:17:49,569 - INFO: Final schedule updated and saved to D:\wangxiaoyang\Regular_Work\Produce_Report\Schedule\WorldFootballMaster\output\cup_schedule.xlsx
+2025-07-15 17:21:16,159 - INFO: ==========Start scraping schedules==========
+2025-07-15 17:21:16,159 - INFO: Scraping League: EPL

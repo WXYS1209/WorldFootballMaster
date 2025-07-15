@@ -29,7 +29,7 @@ class BaseScraper(ABC):
         
     def _setup_logging(self):
         """Configure logging for the scraper"""
-        log_file = os.path.join(self.config.output_dir, f"{self.__class__.__name__.lower()}.log")
+        log_file = os.path.join(self.config.output_dir, "worldfootball_master.log")
         logging.basicConfig(
             filename=log_file,
             level=logging.INFO,
