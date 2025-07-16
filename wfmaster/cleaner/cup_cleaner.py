@@ -32,7 +32,7 @@ class CupCleaner(BaseCleaner):
             return group
 
         # 按 Comp_Code 和 Round 分组并应用函数
-        schedule = schedule.groupby(["Competition", "Season", "Round"], group_keys=False).apply(update_round)
+        schedule = schedule.groupby(["Competition", "Season", "Round"], group_keys=False)[list(schedule.columns)].apply(update_round)
         # sch = sch.drop_duplicates().reset_index(drop=True)
 
         schedule['match_round'] = schedule.apply(

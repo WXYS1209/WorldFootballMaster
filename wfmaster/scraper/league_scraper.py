@@ -23,15 +23,16 @@ class LeagueScraper(BaseScraper):
         Returns:
             pd.DataFrame: Scraped schedule data
         """
-        self.logger.info("="*10 + "Start scraping schedules" + "="*10)
+        self.logger.info("="*10 + "Start scraping LEAGUE schedules" + "="*10)
         
-        for cc in tqdm(range(len(self.LEAGUE_MAP)), desc="Scraping schedule", unit="league"):
+        for cc in tqdm(range(len(self.LEAGUE_MAP)), desc="Scraping LEAGUE schedule", unit="league"):
             self.logger.info(f"Scraping League: {self.LEAGUE_MAP.League_Name[cc]}")            
-            for round_num in tqdm(
-                range(1, self.LEAGUE_MAP['Round'][cc]+1), 
-                desc=f"Scraping schedule for {self.LEAGUE_MAP.League_Name[cc]}", 
-                unit="round"
-            ):
+            for round_num in range(1, self.LEAGUE_MAP['Round'][cc]+1):
+            # tqdm(
+            #     range(1, self.LEAGUE_MAP['Round'][cc]+1), 
+            #     desc=f"Scraping schedule for {self.LEAGUE_MAP.League_Name[cc]}", 
+            #     unit="round"
+            # ):
                 self.scrape_round(round_num=round_num, season=self.LEAGUE_MAP.Season[cc], country_idx=cc)
         self.logger.info("="*10 + "Done scraping schedules" + "="*10)
         

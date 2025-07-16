@@ -1,0 +1,6 @@
+Beautifulsoup4
+tqdm
+pandas
+openpyxl
+requests
+dotenv

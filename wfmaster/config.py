@@ -27,8 +27,10 @@ class Config:
             self.config_dir = os.path.join(package_dir, 'config')
         
         # Set paths from environment variables
-        self.team_mapping_path = os.getenv('TEAM_MAPPING_PATH')
+        self.team_mapping_file = os.getenv('TEAM_MAPPING_FILE')
         self.output_dir = os.getenv('OUTPUT_DIR')
+        self.league_mapping_file = os.getenv('LEAGUE_MAP_FILE')
+        self.cup_mapping_file = os.getenv('CUP_MAP_FILE')
         
         self._league_mapping = None
         self._competition_mapping = None
@@ -37,33 +39,23 @@ class Config:
     def league_mapping(self) -> pd.DataFrame:
         """Get league mapping DataFrame"""
         if self._league_mapping is None:
-            path = os.path.join(self.config_dir, 'league_mapping.csv')
-            self._league_mapping = pd.read_csv(path)
+            if not self.league_mapping_file:
+                self._league_mapping = pd.DataFrame(columns=['League', 'Country', 'League_Name', 'Round', 'League_Type', 'Season', 'Gender'])  # Return empty DataFrame with specified columns if no cup mapping file
+            else:
+                path = os.path.join(self.config_dir, self.league_mapping_file)
+                self._league_mapping = pd.read_csv(path)
         return self._league_mapping
     
     @property
     def competition_mapping(self) -> pd.DataFrame:
         """Get competition mapping DataFrame"""
         if self._competition_mapping is None:
-            path = os.path.join(self.config_dir, 'competition_mapping.csv')
-            self._competition_mapping = pd.read_csv(path)
+            if not self.cup_mapping_file:
+                self._competition_mapping = pd.DataFrame(columns=['Comp_Code', 'Competition', 'Comp_Name', 'Comp_Type', 'Season', 'Gender'])  # Return empty DataFrame with specified columns if no cup mapping file
+            else:
+                path = os.path.join(self.config_dir, self.cup_mapping_file)
+                self._competition_mapping = pd.read_csv(path)
         return self._competition_mapping
-    
-    def get_mapping(self, name: str) -> pd.DataFrame:
-        """Get a specific mapping by name
-        
-        Args:
-            name: Name of mapping to get ('league' or 'competition')
-            
-        Returns:
-            pd.DataFrame: Requested mapping
-        """
-        if name.lower() == 'league':
-            return self.league_mapping
-        elif name.lower() == 'competition':
-            return self.competition_mapping
-        else:
-            raise ValueError(f"Unknown mapping: {name}")
 
 # Global configuration instance
 _config = None

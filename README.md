@@ -15,6 +15,7 @@ output:
 - `scripts/`：手动抓取/清洗的辅助脚本
 - `config/`：比赛和联赛的映射 CSV 文件
 - `output/`：生成的 Excel 文件和日志
+- `.env`：文件及路径配置
 
 # 使用方法
 
@@ -24,19 +25,25 @@ output:
    ```
 
 2. 更新配置文件
-    修改 `config/` 中的 `league_mapping.csv` (联赛) 与 `competition_mapping.csv` (杯赛)
+
+- 修改 `.env` 文件：
+  - `Team mapping file`  
+    球队名称映射文件
+    
+  - `League` & `Cup`  
+    `OUT_FILE`：最后输出赛程文件名称（位于 `output/`）
+    `MAP_FILE`：赛事信息文件（位于 `config/`）
+
+- 修改赛事信息文件（位于 `config/`）
 
 3. 运行主程序：
    ```bash
    python main.py
    ```
-
-4. 在 `output/` 文件夹中查看结果：
-   - `league_schedule.xlsx`：联赛
-   - `cup_schedule.xlsx`：杯赛
    
 # 赛程文件
   文件中包含以下四个表格：
+  
   1. Sequence：比赛顺序
   
   2. Schedule：赛程
@@ -47,4 +54,5 @@ output:
 
 # 扩展说明
 - 在 `wfmaster/scraper/` 或 `wfmaster/cleaner/` 中添加新的抓取或清洗模块
+
 - 在 `main.py` 中增加新的处理流程

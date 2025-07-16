@@ -28,7 +28,7 @@ class BaseCleaner(ABC):
         Args:
             input_dir: Directory containing input files
             output_dir: Directory to save output files
-            team_mapping_path: Path to team mapping Excel file
+            team_mapping_file: Path to team mapping Excel file
         """
         self.config = get_config(config_dir)
 
@@ -57,7 +57,8 @@ class BaseCleaner(ABC):
             pd.DataFrame: Cleaned schedule data
         """
         self.logger.info("="*10 + "Start cleaning schedules" + "="*10)
-        
+        if input_data.empty:
+            return
         try:
             self.clean_data = self._process_schedule(input_data)
             
@@ -75,7 +76,7 @@ class BaseCleaner(ABC):
             self.logger.error("No data to save")
             return
             
-        output_file = filename or os.path.join(self.config.output_dir, f'sch_{self.__class__.__name__.lower()}_clean.xlsx')
+        output_file = filename or os.path.join(self.config.output_dir, f'sch_{self.__class__.__name__.lower()}.xlsx')
         self.clean_data.to_excel(output_file, index=False)
         self.logger.info(f"Cleaned schedule saved to {output_file}")
         self.logger.info("="*10 + "Done cleaning schedules" + "="*10)
@@ -91,7 +92,7 @@ class BaseCleaner(ABC):
             self.logger.error("No clean data available")
             return
             
-        final_path = final_schedule_path or os.path.join(self.config.output_dir, 'Schedule.xlsx')
+        final_path = final_schedule_path # or os.path.join(self.config.output_dir, 'Schedule.xlsx')
         
         if not os.path.exists(final_path):
             initial = True
@@ -205,7 +206,7 @@ class BaseCleaner(ABC):
         """Load team mapping data"""
         try:
             self.team_mapping = pd.read_excel(
-                self.config.team_mapping_path,
+                self.config.team_mapping_file,
                 sheet_name="alias"
             )
             

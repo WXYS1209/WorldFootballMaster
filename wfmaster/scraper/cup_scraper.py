@@ -25,7 +25,7 @@ class CupScraper(BaseScraper):
         # self.COMPETITION_MAP = self.config.competition_mapping
         
     def scrape(self) -> pd.DataFrame:
-        """Scrape data for all UEFA competitions
+        """Scrape data for cup competitions
         
         Args:
             season: Season to scrape data for
@@ -33,7 +33,7 @@ class CupScraper(BaseScraper):
         Returns:
             pd.DataFrame: Scraped match data
         """
-        self.logger.info("="*10 + "Start scraping UEFA schedules" + "="*10)
+        self.logger.info("="*10 + "Start scraping CUP schedules" + "="*10)
         
         for cc in tqdm(range(len(self.COMPETITION_MAP)), desc="Scraping competitions", unit="competition"):
             self.logger.info(f"Scraping Competition: {self.COMPETITION_MAP.Comp_Name[cc]}")
