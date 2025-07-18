@@ -23,12 +23,11 @@ class BaseCleaner(ABC):
     FINAL_COLUMNS = ['match_id'] + CLEANED_COLUMNS + ['Match_in_Season', 'note']
 
     def __init__(self, config_dir: str = None):
-        """Initialize the cleaner
-        
+        """
+        Initialize the cleaner with configuration and team mappings.
+
         Args:
-            input_dir: Directory containing input files
-            output_dir: Directory to save output files
-            team_mapping_file: Path to team mapping Excel file
+            config_dir (str, optional): Path to the directory containing configuration files. If None, uses default config location.
         """
         self.config = get_config(config_dir)
 
@@ -38,8 +37,10 @@ class BaseCleaner(ABC):
         self.clean_data = None
         
     def _setup_logging(self):
-        """Configure logging for the cleaner"""
-        log_file = os.path.join(self.config.output_dir, "worldfootball_master.log")
+        """
+        Set up logging for the cleaner instance. Logs are written to 'worldfootball_master.log' with INFO level and a standard format.
+        """
+        log_file = "worldfootball_master.log" # os.path.join(self.config.output_dir, "worldfootball_master.log")
         logging.basicConfig(
             filename=log_file,
             level=logging.INFO,
@@ -48,13 +49,14 @@ class BaseCleaner(ABC):
         self.logger = logging.getLogger(self.__class__.__name__)
     
     def clean(self, input_data: pd.DataFrame) -> pd.DataFrame:
-        """Clean the schedule data
-        
+        """
+        Clean the schedule data and store the result in self.clean_data.
+
         Args:
-            input_data: Original data
-            
+            input_data (pd.DataFrame): Original schedule data to be cleaned.
+
         Returns:
-            pd.DataFrame: Cleaned schedule data
+            pd.DataFrame: Cleaned schedule data.
         """
         self.logger.info("="*10 + "Start cleaning schedules" + "="*10)
         if input_data.empty:
@@ -67,10 +69,11 @@ class BaseCleaner(ABC):
             raise
     
     def save(self, filename: Optional[str] = None) -> None:
-        """Save cleaned data to Excel file
-        
+        """
+        Save the cleaned data to an Excel file.
+
         Args:
-            filename: Name of output file. If None, uses default name.
+            filename (str, optional): Name or path of the output file. If None, a default name is generated based on the class name and output directory.
         """
         if not self._validate_data(self.clean_data):
             self.logger.error("No data to save")
@@ -81,85 +84,17 @@ class BaseCleaner(ABC):
         self.logger.info(f"Cleaned schedule saved to {output_file}")
         self.logger.info("="*10 + "Done cleaning schedules" + "="*10)
     
-    def update_final_schedule(self, final_schedule_path: Optional[str] = None, initial: bool = False) -> None:
-        """Update the final schedule file
-        
-        Args:
-            final_schedule_path: Path to final schedule Excel file
-            initial: Whether this is the initial run. If True, will create Sequence sheet
-        """
-        if not self._validate_data(self.clean_data):
-            self.logger.error("No clean data available")
-            return
-            
-        final_path = final_schedule_path # or os.path.join(self.config.output_dir, 'Schedule.xlsx')
-        
-        if not os.path.exists(final_path):
-            initial = True
-            # Create an empty Excel file with the required sheets and columns
-            with pd.ExcelWriter(final_path) as writer:
-                pd.DataFrame(columns=['season', 'competition', 'hometeam_id', 'hometeam', 'awayteam_id', 'awayteam', 'match_round', 'Match_in_Season', 'match_id']).to_excel(writer, sheet_name="Sequence", index=False)
-                pd.DataFrame(columns=self.FINAL_COLUMNS).to_excel(writer, sheet_name="Schedule", index=False)
-
-        try:
-            if initial:
-                # For initial run, use clean_data as both sequence and schedule
-                self.logger.info("Initial run - creating sequence from clean data")
-                df_seq = self.clean_data[['season', 'competition', 'hometeam_id', 'hometeam', 'awayteam_id', 'awayteam', 'match_round']].copy()
-                # Create match_id by grouping and using cumcount
-                # Add sequential match number within each season/competition group
-                df_seq['Match_in_Season'] = df_seq.groupby(['season', 'competition']).cumcount() + 1
-                df_seq['match_id'] = df_seq[['competition','season', 'Match_in_Season']].astype(str).agg('_'.join, axis=1)
-                df_final_org = pd.DataFrame(columns=self.FINAL_COLUMNS)
-
-                # Save sequence first
-                with pd.ExcelWriter(final_path) as writer:
-                    df_seq.to_excel(writer, sheet_name="Sequence", index=False)
-                # return
-            else:
-                # Normal operation - load existing files
-                df_seq = pd.read_excel(final_path, sheet_name="Sequence")
-                df_final_org = pd.read_excel(final_path, sheet_name="Schedule")
-            
-            # Merge with sequence
-            df_final = df_seq.merge(self.clean_data, how="left", on=['season', 'competition', 'hometeam_id', 'hometeam', 'awayteam_id', 'awayteam', 'match_round'])
-
-            # Check for modifications
-            df_check = self._check_modifications(df_final, df_final_org)
-            
-            # Mutate modified time
-            if not initial:
-                df_final['modified_time'] = df_final_org['modified_time']
-                df_final.loc[df_check['modified'] == True, 'modified_time'] = pd.Timestamp(datetime.today().date())
-                df_final['note'] = pd.NA
-                df_final.loc[df_check['modified'] == True, 'note'] = "Modified"
-            
-            else:
-                df_final['modified_time'] = pd.Timestamp(datetime.today().date())
-                df_final['note'] = "Initial scrape"
-
-            # Generate statistics
-            df_update_info = df_check.loc[df_check['modified'] == True, ['season', 'competition', 'match_round']].value_counts().sort_index()
-            df_stat = df_final.loc[df_final['status'].notna(), ['season', 'competition', 'match_round']].value_counts().sort_index()
-            
-            self.logger.info(f"Number of schedule updated: {df_update_info.sum()}")
-            
-            # Save updates
-            self._save_final_schedule(final_path, df_final[self.FINAL_COLUMNS], df_update_info, df_stat)
-            
-        except Exception as e:
-            self.logger.error(f"Error updating final schedule: {e}", exc_info=True)
-            raise
     
     def _check_modifications(self, df_final: pd.DataFrame, df_final_org: pd.DataFrame) -> pd.DataFrame:
-        """Check for modifications between new and original schedule
-        
+        """
+        Compare new and original schedules to flag modifications.
+
         Args:
-            df_final: New final schedule
-            df_final_org: Original final schedule
-            
+            df_final (pd.DataFrame): New final schedule.
+            df_final_org (pd.DataFrame): Original final schedule.
+
         Returns:
-            pd.DataFrame: DataFrame with modification flags
+            pd.DataFrame: DataFrame with modification flags.
         """
         df_check = df_final.merge(
             df_final_org,
@@ -175,13 +110,14 @@ class BaseCleaner(ABC):
         return df_check
     
     def _save_final_schedule(self, path: str, df_final: pd.DataFrame, df_update_info: pd.DataFrame, df_stat: pd.DataFrame) -> None:
-        """Save final schedule to Excel
-        
+        """
+        Save the final schedule, update info, and statistics to an Excel file with multiple sheets.
+
         Args:
-            path: Path to save Excel file
-            df_final: Final schedule DataFrame
-            df_update_info: Update information DataFrame
-            df_stat: Statistics DataFrame
+            path (str): Path to save the Excel file.
+            df_final (pd.DataFrame): Final schedule DataFrame.
+            df_update_info (pd.DataFrame): Update information DataFrame.
+            df_stat (pd.DataFrame): Statistics DataFrame.
         """
         with pd.ExcelWriter(path, mode='a', if_sheet_exists='replace', engine='openpyxl') as writer:
             df_final.to_excel(writer, sheet_name="Schedule", index=False)
@@ -192,18 +128,21 @@ class BaseCleaner(ABC):
     
 
     def _validate_data(self, df: pd.DataFrame) -> bool:
-        """Validate cleaned data
-        
+        """
+        Validate the cleaned data DataFrame.
+
         Args:
-            df: DataFrame containing cleaned data
-            
+            df (pd.DataFrame): DataFrame containing cleaned data.
+
         Returns:
-            bool: True if data is valid, False otherwise
+            bool: True if the DataFrame is valid and not empty, False otherwise.
         """
         return not df.empty if isinstance(df, pd.DataFrame) else False
     
     def _load_team_mappings(self) -> None:
-        """Load team mapping data"""
+        """
+        Load team mapping data from the configured Excel file.
+        """
         try:
             self.team_mapping = pd.read_excel(
                 self.config.team_mapping_file,
@@ -215,14 +154,14 @@ class BaseCleaner(ABC):
             raise
     
     def _clean_team(self, schedule: pd.DataFrame) -> pd.DataFrame:
-        """Add team codes to schedule data
-        
+        """
+        Add team codes and standardized team names to the schedule data using the team mapping.
+
         Args:
-            schedule: Schedule DataFrame
-            team_mapping: Team mapping DataFrame
-            
+            schedule (pd.DataFrame): Schedule DataFrame to enrich with team codes.
+
         Returns:
-            pd.DataFrame: Schedule with team codes
+            pd.DataFrame: Schedule with team codes and standardized names.
         """
         # Normalize case for merging
         schedule['Home_Team'] = schedule['Home_Team'].str.lower()
@@ -248,13 +187,14 @@ class BaseCleaner(ABC):
         return schedule_clean
     
     def _format_time_to_26(self, time_str: str) -> str:
-        """Format time string to 26-hour format
-        
+        """
+        Convert a time string to a 26-hour format (e.g., 01:00 becomes 25:00 if after midnight).
+
         Args:
-            time_str: Time string to format
-            
+            time_str (str): Time string to format.
+
         Returns:
-            str: Formatted time string
+            str: Formatted time string in 26-hour format, or <NA> if input is missing.
         """
         if pd.isna(time_str):
             return pd.NA
@@ -272,37 +212,49 @@ class BaseCleaner(ABC):
         return f'{hh}:{mm:02d}'
     
     def _format_season(self, season: str) -> str:
-        """Format season string from YYYY-YYYY to YYYY/YY format
-        
+        """
+        Format a season string from 'YYYY-YYYY' to 'YYYY/YY' format.
+
         Args:
-            season: Season string (e.g. '2024-2025')
-            
+            season (str): Season string (e.g., '2024-2025').
+
         Returns:
-            str: Formatted season string (e.g. '2024/25')
+            str: Formatted season string (e.g., '2024/25').
         """
         if isinstance(season, str) and '-' in season:
             try:
                 start_year, end_year = season.split('-')
-                if len(start_year) == 4 and len(end_year) == 4:
+                if len(start_year) == 4 and (len(end_year) == 4 and end_year.isdigit()):
                     return f"{start_year}/{end_year[2:]}"
+                elif len(start_year) == 4 and not end_year.isdigit():
+                    return start_year
             except ValueError:
                 pass
         return season
         
     def _process_scores(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Process match scores and calculate results
-        
+        """
+        Process match scores, split into components, and calculate match results for home and away teams.
+
         Args:
-            df: DataFrame to process
-            
+            df (pd.DataFrame): DataFrame to process.
+
         Returns:
-            pd.DataFrame: Processed DataFrame
+            pd.DataFrame: DataFrame with processed scores and results.
         """
         # Split score into components
-        df[['Score', 'Score_Half']] = df['Score'].str.split(' ', expand=True).loc[:, 0:1]
+        try:
+            df[['Score', 'Score_Half']] = df['Score'].str.split(' ', expand=True).loc[:, 0:1]
+        except ValueError:
+            df['Score'] = pd.NA
+            df['Score_Half'] = pd.NA
         scores = df['Score'].str.split(':', expand=True)
         scores = scores.apply(lambda col: pd.to_numeric(col.str.strip(), errors='coerce'))
-        df[['hometeam_score', 'awayteam_score']] = scores.astype('Int64')
+        try:
+            df[['hometeam_score', 'awayteam_score']] = scores.astype('Int64')
+        except ValueError:
+            df['hometeam_score'] = pd.NA
+            df['awayteam_score'] = pd.NA
         
         # Calculate match results
         df['hometeam_result'] = df.apply(lambda row: 
@@ -322,13 +274,14 @@ class BaseCleaner(ABC):
         return df
     
     def _process_status(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Process match status and duration
-        
+        """
+        Process match status and assign status labels based on score and match notes.
+
         Args:
-            df: DataFrame to process
-            
+            df (pd.DataFrame): DataFrame to process.
+
         Returns:
-            pd.DataFrame: Processed DataFrame
+            pd.DataFrame: DataFrame with processed status.
         """
         
         # Set default status
@@ -345,13 +298,14 @@ class BaseCleaner(ABC):
         return df
     
     def _process_datetime(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Process date and time information
-        
+        """
+        Process date and time information, calculate match duration, and generate additional time-related columns.
+
         Args:
-            df: DataFrame to process
-            
+            df (pd.DataFrame): DataFrame to process.
+
         Returns:
-            pd.DataFrame: Processed DataFrame
+            pd.DataFrame: DataFrame with processed date and time information.
         """
         # Calculate match duration
         # Duration mapping in seconds
@@ -368,6 +322,8 @@ class BaseCleaner(ABC):
         # Create date string
         df['Date_Org'] = df['Date'].apply(lambda x: x.strftime('%Y-%m-%d'))
         
+        # Replace empty string in 'Time' with pd.NA
+        df['Time'] = df['Time'].replace("", pd.NA)
         # Create datetime string
         df['DateTime_str'] = df.apply(
             lambda row: row['Date_Org'] + " " + row['Time'] if pd.notna(row['Time'])
@@ -380,6 +336,7 @@ class BaseCleaner(ABC):
         
         # Process time format
         df['kickoff_time'] = df['Time'].apply(self._format_time_to_26)
+        
         df['finish_time'] = df.apply(
             lambda row: 
                 self._format_time_to_26((datetime.strptime(row['Time'], '%H:%M') + timedelta(seconds=row['match_dur_s'])).strftime('%H:%M'))
@@ -441,13 +398,14 @@ class BaseCleaner(ABC):
         return df
     
     def _process_schedule(self, schedule: pd.DataFrame) -> pd.DataFrame:
-        """Process and clean schedule data
-        
+        """
+        Process and clean the raw schedule data, including team codes, scores, status, datetime, and round information.
+
         Args:
-            schedule: Raw schedule DataFrame
-            
+            schedule (pd.DataFrame): Raw schedule DataFrame.
+
         Returns:
-            pd.DataFrame: Processed schedule data
+            pd.DataFrame: Fully processed and cleaned schedule data.
         """
         
         # Add team codes
@@ -471,5 +429,7 @@ class BaseCleaner(ABC):
     
     @abstractmethod
     def _process_round(self, *args, **kwargs):
-        """Process round information"""
+        """
+        Abstract method to process round information. Must be implemented by subclasses.
+        """
         pass

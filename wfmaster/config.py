@@ -13,12 +13,12 @@ load_dotenv(dotenv_path=env_path)
 class Config:
     """Configuration manager for wfmaster"""
     def __init__(self, config_dir: Optional[str] = None):
-        """Initialize configuration
-        
+        """
+        Initialize the configuration manager for wfmaster.
+
         Args:
-            config_dir: Directory containing configuration files.
-                        If None, uses environment variable or default.
-        """        
+            config_dir (str, optional): Path to the directory containing configuration files. If None, uses environment variable or default location.
+        """
         # Set config directory
         self.config_dir = config_dir or os.getenv('CONFIG_DIR')
         if self.config_dir is None:
@@ -27,7 +27,7 @@ class Config:
             self.config_dir = os.path.join(package_dir, 'config')
         
         # Set paths from environment variables
-        self.team_mapping_file = os.getenv('TEAM_MAPPING_FILE')
+        self.team_mapping_file = os.path.join(self.config_dir, os.getenv('TEAM_MAPPING_FILE'))
         self.output_dir = os.getenv('OUTPUT_DIR')
         self.league_mapping_file = os.getenv('LEAGUE_MAP_FILE')
         self.cup_mapping_file = os.getenv('CUP_MAP_FILE')
@@ -37,7 +37,13 @@ class Config:
     
     @property
     def league_mapping(self) -> pd.DataFrame:
-        """Get league mapping DataFrame"""
+        """
+        Get the league mapping DataFrame from the configured CSV file.
+        Loads the file on first access and caches the result.
+
+        Returns:
+            pd.DataFrame: DataFrame containing league mapping information.
+        """
         if self._league_mapping is None:
             if not self.league_mapping_file:
                 self._league_mapping = pd.DataFrame(columns=['League', 'Country', 'League_Name', 'Round', 'League_Type', 'Season', 'Gender'])  # Return empty DataFrame with specified columns if no cup mapping file
@@ -48,7 +54,13 @@ class Config:
     
     @property
     def competition_mapping(self) -> pd.DataFrame:
-        """Get competition mapping DataFrame"""
+        """
+        Get the competition mapping DataFrame from the configured CSV file.
+        Loads the file on first access and caches the result.
+
+        Returns:
+            pd.DataFrame: DataFrame containing competition mapping information.
+        """
         if self._competition_mapping is None:
             if not self.cup_mapping_file:
                 self._competition_mapping = pd.DataFrame(columns=['Comp_Code', 'Competition', 'Comp_Name', 'Comp_Type', 'Season', 'Gender'])  # Return empty DataFrame with specified columns if no cup mapping file
@@ -61,13 +73,14 @@ class Config:
 _config = None
 
 def get_config(config_dir: Optional[str] = None) -> Config:
-    """Get or create the global configuration instance
-    
+    """
+    Get or create the global configuration instance for wfmaster.
+
     Args:
-        config_dir: Optional configuration directory
-        
+        config_dir (str, optional): Optional configuration directory. If None, uses default.
+
     Returns:
-        Config: Configuration instance
+        Config: Configuration instance.
     """
     global _config
     if _config is None:

@@ -1,0 +1,31 @@
+2025-07-18 14:10:37,751 INFO WorldFootballMaster started.
+2025-07-18 14:10:37,931 INFO ==========Start scraping LEAGUE schedules==========
+2025-07-18 14:10:37,947 INFO Scraping League: EPL
+2025-07-18 14:10:39,276 ERROR Failed to retrieve data with status code 403
+2025-07-18 14:10:39,276 WARNING 'requests' strategy failed for 'https://chn.worldfootball.net/all_matches/eng-premier-league-2025-2026/': Failed to retrieve data with status code 403
+2025-07-18 14:10:40,432 INFO HTTP Request: GET https://chn.worldfootball.net/all_matches/eng-premier-league-2025-2026/ "HTTP/1.1 200 OK"
+2025-07-18 14:10:42,202 INFO Scraping League: La Liga
+2025-07-18 14:10:43,194 ERROR Failed to retrieve data with status code 403
+2025-07-18 14:10:43,194 WARNING 'requests' strategy failed for 'https://chn.worldfootball.net/all_matches/esp-primera-division-2025-2026/': Failed to retrieve data with status code 403
+2025-07-18 14:10:44,362 INFO HTTP Request: GET https://chn.worldfootball.net/all_matches/esp-primera-division-2025-2026/ "HTTP/1.1 200 OK"
+2025-07-18 14:10:46,906 INFO Scraping League: Bundesliga
+2025-07-18 14:10:47,710 ERROR Failed to retrieve data with status code 403
+2025-07-18 14:10:47,710 WARNING 'requests' strategy failed for 'https://chn.worldfootball.net/all_matches/bundesliga-2025-2026/': Failed to retrieve data with status code 403
+2025-07-18 14:10:50,049 INFO HTTP Request: GET https://chn.worldfootball.net/all_matches/bundesliga-2025-2026/ "HTTP/1.1 200 OK"
+2025-07-18 14:10:51,457 INFO Scraping League: Ligue 1
+2025-07-18 14:10:52,488 ERROR Failed to retrieve data with status code 403
+2025-07-18 14:10:52,488 WARNING 'requests' strategy failed for 'https://chn.worldfootball.net/all_matches/fra-ligue-1-2025-2026/': Failed to retrieve data with status code 403
+2025-07-18 14:10:55,025 INFO HTTP Request: GET https://chn.worldfootball.net/all_matches/fra-ligue-1-2025-2026/ "HTTP/1.1 200 OK"
+2025-07-18 14:10:58,399 INFO Scraping League: Serie A
+2025-07-18 14:10:59,194 ERROR Failed to retrieve data with status code 403
+2025-07-18 14:10:59,194 WARNING 'requests' strategy failed for 'https://chn.worldfootball.net/all_matches/ita-serie-a-2025-2026/': Failed to retrieve data with status code 403
+2025-07-18 14:11:00,587 INFO HTTP Request: GET https://chn.worldfootball.net/all_matches/ita-serie-a-2025-2026/ "HTTP/1.1 200 OK"
+2025-07-18 14:11:03,538 INFO ==========Done scraping schedules==========
+2025-07-18 14:11:03,847 INFO Schedule saved to .\output\sch_leaguescraper.xlsx
+2025-07-18 14:11:03,847 INFO ==========Start cleaning schedules==========
+2025-07-18 14:11:04,339 INFO Cleaned schedule saved to .\output\sch_leaguecleaner.xlsx
+2025-07-18 14:11:04,339 INFO ==========Done cleaning schedules==========
+2025-07-18 14:11:04,385 INFO Initial run - creating sequence from clean data
+2025-07-18 14:11:04,563 INFO Number of schedule updated: 0
+2025-07-18 14:11:05,572 INFO Final schedule updated and saved to D:\wangxiaoyang\Regular_Work\Produce_Report\Schedule\WorldFootballMaster\output\五大联赛赛程_test.xlsx
+2025-07-18 14:11:05,616 INFO WorldFootballMaster finished.

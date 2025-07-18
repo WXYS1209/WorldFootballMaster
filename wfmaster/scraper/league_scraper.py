@@ -1,79 +1,52 @@
-import requests
 from bs4 import BeautifulSoup
 import pandas as pd
 from tqdm import tqdm
-import os
-from typing import Dict, List, Optional
 from .base_scraper import BaseScraper
+import random
+import time
 
 class LeagueScraper(BaseScraper):
     """Scraper for five major European football leagues"""
     def __init__(self, config_dir: str = None):
-        """Initialize FiveLeagueScraper
-        
+        """
+        Initialize the LeagueScraper for scraping major European football leagues.
+
         Args:
-            config_dir: Optional directory containing configuration files
+            config_dir (str, optional): Path to the directory containing configuration files. If None, uses default config location.
         """
         super().__init__(config_dir)
         self.LEAGUE_MAP = self.config.league_mapping # [self.config.league_mapping['League_Type'] == "Five_League"].reset_index(drop=True)
 
     def scrape(self) -> pd.DataFrame:
-        """Scrape schedule data for all five leagues
-            
+        """
+        Scrape schedule data for all leagues in the LEAGUE_MAP.
+
         Returns:
-            pd.DataFrame: Scraped schedule data
+            pd.DataFrame: DataFrame containing all scraped schedule data for the leagues.
         """
         self.logger.info("="*10 + "Start scraping LEAGUE schedules" + "="*10)
-        
-        for cc in tqdm(range(len(self.LEAGUE_MAP)), desc="Scraping LEAGUE schedule", unit="league"):
-            self.logger.info(f"Scraping League: {self.LEAGUE_MAP.League_Name[cc]}")            
-            for round_num in range(1, self.LEAGUE_MAP['Round'][cc]+1):
-            # tqdm(
-            #     range(1, self.LEAGUE_MAP['Round'][cc]+1), 
-            #     desc=f"Scraping schedule for {self.LEAGUE_MAP.League_Name[cc]}", 
-            #     unit="round"
-            # ):
-                self.scrape_round(round_num=round_num, season=self.LEAGUE_MAP.Season[cc], country_idx=cc)
+
+        for cc in tqdm(range(len(self.LEAGUE_MAP)), desc="Scraping LEAGUE schedules", unit="league"):
+            self.logger.info(f"Scraping League: {self.LEAGUE_MAP.League_Name[cc]}")
+            self._scrape_internal(season=self.LEAGUE_MAP.Season[cc], country_idx=cc)
+            delay = random.uniform(1.0, 3.0)
+            time.sleep(delay)
+
         self.logger.info("="*10 + "Done scraping schedules" + "="*10)
         
         return self.data
-    
-    def scrape_round(self, round_num: int, season: str, country_idx: int = None) -> pd.DataFrame:
-        """Scrape data for a specific round, season and country
         
-        Args:
-            round_num: Round number to scrape
-            season: Season string
-            country_idx: Index of country in LEAGUE_MAP (optional)
-            
-        Returns:
-            pd.DataFrame: Scraped data for the round, season and country
+    def _scrape_internal(self, country_idx: int, season: str) -> None:
         """
-        if country_idx is not None:
-            self._scrape_round_internal(country_idx, season, round_num)
-            return self.data[self.data['Round'] == f'Round {round_num:02d}']
-        
-        for cc in tqdm(range(len(self.LEAGUE_MAP)), desc="Scraping schedule", unit="league"):
-            if round_num <= self.LEAGUE_MAP.Round[cc]:
-                self._scrape_round_internal(cc, season, round_num)
-        return self.data[self.data['Round'] == f'Round {round_num:02d}']
-    
-    def _scrape_round_internal(self, country_idx: int, season: str, round_num: int) -> None:
-        """Internal method to scrape data for a specific round
-        
+        Scrape schedule data for a specific league and season.
+
         Args:
-            country_idx: Index of country in LEAGUE_MAP
-            season: Season string
-            round_num: Round number to scrape
+            country_idx (int): Index of the league in LEAGUE_MAP.
+            season (str): Season string (e.g., "2025-2026").
         """
-        url = self._build_url(country_idx, season, round_num)
-        response = requests.get(url)
-        
-        if response.status_code != 200:
-            error_msg = f"Failed to retrieve data from {url} with status code {response.status_code}"
-            self.logger.error(error_msg)
-            raise requests.RequestException(error_msg)
-            
+        url = self._build_url(country_idx, season)
+        response = self._fetch_with(url)
+    
         soup = BeautifulSoup(response.content, 'html.parser')
         try:
             match_table = soup.find_all('table', class_='standard_tabelle')[0]
@@ -81,38 +54,55 @@ class LeagueScraper(BaseScraper):
             self.logger.error(f"No match table found at URL: {url}")
             raise ValueError(f"No match table found at URL: {url}")
             
-        self._parse_matches(match_table, season, country_idx, round_num)
+        self._parse_matches(match_table, season, country_idx)
     
-    def _build_url(self, country_idx: int, season: str, round_num: int) -> str:
-        """Build URL for scraping
-        
-        Args:
-            country_idx: Index of country in LEAGUE_MAP
-            season: Season string
-            round_num: Round number
-            
-        Returns:
-            str: URL for scraping
+    def _build_url(self, country_idx: int, season: str) -> str:
         """
-        return f'https://chn.worldfootball.net/schedule/{self.LEAGUE_MAP.League[country_idx]}-{season}-spieltag/{round_num}/'
-    
-    def _parse_matches(self, match_table: BeautifulSoup, season, country_idx: int, round_num: int) -> None:
-        """Parse match data from BeautifulSoup table
-        
+        Build the URL for scraping all matches of a given league and season.
+
         Args:
-            match_table: BeautifulSoup table element
-            country_idx: Index of country in LEAGUE_MAP
-            round_num: Round number
+            country_idx (int): Index of the league in LEAGUE_MAP.
+            season (str): Season string.
+
+        Returns:
+            str: The constructed URL for scraping match data.
+        """
+        return f'https://chn.worldfootball.net/all_matches/{self.LEAGUE_MAP.League[country_idx]}-{season}/'
+    
+    def _parse_matches(self, match_table: BeautifulSoup, season, country_idx: int) -> None:
+        """
+        Parse match data from a BeautifulSoup table element and append it to the data DataFrame.
+
+        Args:
+            match_table (BeautifulSoup): The table element containing match rows.
+            season (str): The season string.
+            country_idx (int): Index of the league in LEAGUE_MAP.
         """
         temp_data = []
-        rows = match_table.find_all('tr')
-        
-        for row in rows:
-            cells = row.find_all('td')
-            if len(cells) >= 5:
-                match_data = self._extract_match_data(cells, season, self.LEAGUE_MAP.League_Name[country_idx], f'Round {round_num:02d}')
+        current_round = None
+
+        for tr in match_table.find_all('tr'):
+            # 1) Round‑header row?
+            th = tr.find('th', colspan='7')
+            if th:
+                # e.g. <a>1. Round</a>
+                a = th.find('a')
+                current_round_text = a.text.strip() if a else th.text.strip()
+                current_round_num = int(current_round_text.split(".")[0])
+                current_round = f'Round {current_round_num:02d}'
+                continue
+
+            # 2) Data row?
+            cells = tr.find_all('td')
+            if len(cells) == 7:
+                match_data = self._extract_match_data(
+                    cells,
+                    season,
+                    self.LEAGUE_MAP.League_Name[country_idx],
+                    round_info = current_round
+                )
                 temp_data.append(match_data)
-                
+
         if temp_data:
             temp_df = pd.DataFrame(temp_data)
             self.data = pd.concat([self.data, temp_df], ignore_index=True)

@@ -4,3 +4,5 @@ pandas
 openpyxl
 requests
 dotenv
+cloudscraper
+httpx

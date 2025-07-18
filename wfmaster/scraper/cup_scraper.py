@@ -11,69 +11,44 @@ from ..config import get_config
 class CupScraper(BaseScraper):
     """Scraper for UEFA competitions (UCL, UEL, UECL, etc.)"""      
     def __init__(self, config_dir: str = None):
-        """Initialize UEFAScraper
-        
+        """
+        Initialize the CupScraper for Cup competitions.
+
         Args:
-            output_dir: Directory to save output files
-            config_dir: Optional directory containing configuration files
+            config_dir (str, optional): Path to the directory containing configuration files. If None, uses default config location.
         """
         super().__init__(config_dir)
         self.config = get_config(config_dir)
         self.COMPETITION_MAP = self.config.competition_mapping
-        # self.current_season = self.config.current_season
-        # self.config = get_config(config_dir)
-        # self.COMPETITION_MAP = self.config.competition_mapping
         
     def scrape(self) -> pd.DataFrame:
-        """Scrape data for cup competitions
-        
-        Args:
-            season: Season to scrape data for
-            
+        """
+        Scrape schedule data for all cup competitions in the COMPETITION_MAP.
+
         Returns:
-            pd.DataFrame: Scraped match data
+            pd.DataFrame: DataFrame containing all scraped match data for the competitions.
         """
         self.logger.info("="*10 + "Start scraping CUP schedules" + "="*10)
         
         for cc in tqdm(range(len(self.COMPETITION_MAP)), desc="Scraping competitions", unit="competition"):
-            self.logger.info(f"Scraping Competition: {self.COMPETITION_MAP.Comp_Name[cc]}")
+            self.logger.info(f"Scraping CUP schedules: {self.COMPETITION_MAP.Comp_Name[cc]}")
             self._scrape_competition(comp_idx=cc, season=self.COMPETITION_MAP.Season[cc])
         
         return self.data
     
-    # def scrape_stage(self, stage: str, season: str = '2024-2025', competition: str = None) -> pd.DataFrame:
-    #     """Scrape specific stage of a competition
-        
-    #     Args:
-    #         stage: Stage name to filter
-    #         season: Season to scrape
-    #         competition: Optional competition code to filter
-            
-    #     Returns:
-    #         pd.DataFrame: Filtered match data
-    #     """
-    #     self.scrape(season)
-    #     filtered_data = self.data[self.data['Round'] == stage]
-    #     if competition:
-    #         filtered_data = filtered_data[filtered_data['Comp_Code'] == competition]
-    #     return filtered_data
-    
     def _scrape_competition(self, comp_idx: int, season: str) -> None:
-        """Scrape matches for a specific competition
-        
+        """
+        Scrape all matches for a specific competition and season.
+
         Args:
-            comp_idx: Index in COMPETITION_MAP
-            season: Season string
+            comp_idx (int): Index of the competition in COMPETITION_MAP.
+            season (str): Season string (e.g., "2025-2026").
         """
         # Handle special season formats for certain competitions
         # season = self._adjust_season(comp_idx, season)
 
         url = self._build_url(comp_idx, season)
-        response = requests.get(url)
-        
-        if response.status_code != 200:
-            self.logger.error(f"Failed to retrieve data from {url} with status code {response.status_code}")
-            return
+        response = self._fetch_with(url)
             
         soup = BeautifulSoup(response.content, 'html.parser')
         
@@ -86,24 +61,26 @@ class CupScraper(BaseScraper):
         self._parse_matches(match_table, comp_idx, season)
     
     def _build_url(self, comp_idx: int, season: str) -> str:
-        """Build URL for scraping
-        
+        """
+        Build the URL for scraping all matches of a given competition and season.
+
         Args:
-            comp_idx: Competition index
-            season: Season string
-            
+            comp_idx (int): Index of the competition in COMPETITION_MAP.
+            season (str): Season string.
+
         Returns:
-            str: URL for scraping
+            str: The constructed URL for scraping match data.
         """
         return f"https://chn.worldfootball.net/all_matches/{self.COMPETITION_MAP.Competition[comp_idx]}-{season}/"
     
     def _parse_matches(self, match_table: BeautifulSoup, comp_idx: int, season: str) -> None:
-        """Parse match data from BeautifulSoup table
-        
+        """
+        Parse match data from a BeautifulSoup table element and append it to the data DataFrame.
+
         Args:
-            match_table: BeautifulSoup table element
-            comp_idx: Competition index
-            season: Season string
+            match_table (BeautifulSoup): The table element containing match rows.
+            comp_idx (int): Index of the competition in COMPETITION_MAP.
+            season (str): The season string.
         """
         current_round = ""
         temp_data = []
